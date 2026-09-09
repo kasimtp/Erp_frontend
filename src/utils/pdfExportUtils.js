@@ -160,3 +160,258 @@ export function downloadReportPDF({ reportTitle, subtitle, filters = {}, metrics
   const safeFileName = fileName || `${reportTitle.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(safeFileName);
 }
+
+/**
+ * Generate and download a professional single Invoice/Sale document PDF (portrait A4)
+ * @param {Object} saleDoc
+ */
+export function downloadInvoicePDF(saleDoc) {
+  if (!saleDoc) return;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  const docTypeNames = {
+    invoice: "TAX INVOICE",
+    quotation: "SALES QUOTATION",
+    salesOrder: "SALES ORDER",
+    salesReturn: "SALES RETURN",
+  };
+  const docTitle = docTypeNames[saleDoc.documentType] || "TAX INVOICE";
+
+  // Header Banner
+  doc.setFillColor(...BRAND_COLOR);
+  doc.rect(0, 0, pageW, 32, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("ORBIT BUSINESS SUITE", 14, 13);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("GSTIN: 32AABCU9603R1ZM | contact@orbitbusiness.com", 14, 20);
+  doc.text("123 Business Avenue, Tech Hub, India", 14, 25);
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(docTitle, pageW - 14, 16, { align: "right" });
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Status: ${(saleDoc.paymentStatus || saleDoc.status || "UNPAID").toUpperCase()}`, pageW - 14, 24, { align: "right" });
+
+  // Invoice Details & Bill To
+  let y = 42;
+
+  // Document Info
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Document Details", 14, y);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Number:", 14, y + 6);
+  doc.text("Date:", 14, y + 11);
+  doc.text("Due Date:", 14, y + 16);
+
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFont("helvetica", "bold");
+  doc.text(saleDoc.documentNumber || "N/A", 35, y + 6);
+  doc.setFont("helvetica", "normal");
+  doc.text(fmtDate(saleDoc.createdAt || new Date()), 35, y + 11);
+  doc.text(fmtDate(saleDoc.dueDate || new Date()), 35, y + 16);
+
+  // Bill To Box (Right side)
+  const rightX = pageW / 2 + 5;
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bill To:", rightX, y);
+
+  const cust = saleDoc.customer || {};
+  const custName = cust.name || saleDoc.customerName || "Valued Customer";
+  const custPhone = cust.phone || "";
+  const custEmail = cust.email || "";
+  const custAddress = cust.address || "";
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.text(custName, rightX, y + 6);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_MUTED);
+  let custY = y + 11;
+  if (custPhone) {
+    doc.text(`Phone: ${custPhone}`, rightX, custY);
+    custY += 5;
+  }
+  if (custEmail) {
+    doc.text(`Email: ${custEmail}`, rightX, custY);
+    custY += 5;
+  }
+  if (custAddress) {
+    doc.text(`Address: ${custAddress}`, rightX, custY);
+    custY += 5;
+  }
+
+  y = Math.max(y + 24, custY + 2);
+
+  // Items Table
+  const items = saleDoc.items || [];
+  const tableRows = items.map((item, idx) => {
+    const qty = Number(item.quantity) || 1;
+    const price = Number(item.unitPrice) || 0;
+    const taxRate = Number(item.taxRate) || 0;
+    const total = Number(item.total) || (qty * price);
+    return [
+      idx + 1,
+      item.productName || item.product?.name || "Product Item",
+      item.sku || "—",
+      qty,
+      fmtINR(price),
+      taxRate ? `${taxRate}%` : "0%",
+      fmtINR(total),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Item Description", "SKU", "Qty", "Unit Price", "Tax", "Total"]],
+    body: tableRows,
+    theme: "striped",
+    headStyles: {
+      fillColor: BRAND_COLOR,
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 9,
+    },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3.5,
+      textColor: ACCENT_COLOR,
+      lineColor: [226, 232, 240],
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 16, halign: "center" },
+      4: { cellWidth: 28, halign: "right" },
+      5: { cellWidth: 18, halign: "center" },
+      6: { cellWidth: 30, halign: "right" },
+    },
+  });
+
+  const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : y + 40;
+
+  // Summary Table (Right aligned)
+  const summaryX = pageW - 85;
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_MUTED);
+
+  const grandTotal = saleDoc.grandTotal || 0;
+  const subtotal = saleDoc.subtotal || grandTotal;
+  const taxTotal = saleDoc.taxTotal || 0;
+  const discountTotal = saleDoc.discountTotal || 0;
+  const amountPaid = saleDoc.amountPaid || 0;
+  const balanceDue = saleDoc.balanceDue !== undefined ? saleDoc.balanceDue : (grandTotal - amountPaid);
+
+  let sumY = finalY;
+  const addSummaryLine = (label, val, isBold = false, isHighlight = false) => {
+    if (isHighlight) {
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(summaryX - 4, sumY - 4, 75, 8, 1, 1, "F");
+    }
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    doc.setTextColor(...(isBold ? ACCENT_COLOR : TEXT_MUTED));
+    doc.text(label, summaryX, sumY);
+    doc.text(fmtINR(val), pageW - 14, sumY, { align: "right" });
+    sumY += 6;
+  };
+
+  addSummaryLine("Subtotal:", subtotal);
+  if (discountTotal > 0) addSummaryLine("Discount:", -discountTotal);
+  if (taxTotal > 0) addSummaryLine("Tax:", taxTotal);
+  addSummaryLine("Grand Total:", grandTotal, true, true);
+  if (amountPaid > 0) addSummaryLine("Amount Paid:", amountPaid);
+  addSummaryLine("Balance Due:", balanceDue, true);
+
+  // Notes
+  if (saleDoc.notes) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...ACCENT_COLOR);
+    doc.text("Notes / Terms:", 14, finalY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(doc.splitTextToSize(saleDoc.notes, summaryX - 25), 14, finalY + 5);
+  }
+
+  // Footer
+  doc.setDrawColor(226, 232, 240);
+  doc.line(14, pageH - 20, pageW - 14, pageH - 20);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Thank you for your business! This is a computer generated document.", 14, pageH - 14);
+  doc.text("Authorized Signature ____________________", pageW - 14, pageH - 14, { align: "right" });
+
+  doc.save(`${saleDoc.documentNumber || "Invoice"}.pdf`);
+}
+
+/**
+ * Share invoice summary with direct WhatsApp link and download PDF invoice
+ * @param {Object} saleDoc
+ */
+export function shareInvoiceWhatsApp(saleDoc) {
+  if (!saleDoc) return;
+
+  // 1. Download the PDF invoice
+  downloadInvoicePDF(saleDoc);
+
+  // 2. Prepare WhatsApp text
+  const cust = saleDoc.customer || {};
+  const custName = cust.name || saleDoc.customerName || "Customer";
+  const phone = cust.phone || "";
+
+  // Clean phone number: remove non-digits
+  let cleanPhone = String(phone).replace(/\D/g, "");
+  // If Indian 10-digit number without country code, prepend 91
+  if (cleanPhone.length === 10) {
+    cleanPhone = `91${cleanPhone}`;
+  }
+
+  const itemsList = (saleDoc.items || [])
+    .map((it, i) => `${i + 1}. ${it.productName || it.product?.name || "Item"} x ${it.quantity} = Rs ${(it.total || 0).toLocaleString("en-IN")}`)
+    .join("\n");
+
+  const message = `*INVOICE: ${saleDoc.documentNumber}*
+Hello ${custName},
+
+Here are the details for your recent transaction:
+----------------------------------------
+*Type:* ${saleDoc.documentType ? saleDoc.documentType.toUpperCase() : "INVOICE"}
+*Date:* ${new Date(saleDoc.createdAt || Date.now()).toLocaleDateString("en-IN")}
+*Grand Total:* Rs ${(saleDoc.grandTotal || 0).toLocaleString("en-IN")}
+*Paid:* Rs ${(saleDoc.amountPaid || 0).toLocaleString("en-IN")}
+*Balance Due:* Rs ${(saleDoc.balanceDue !== undefined ? saleDoc.balanceDue : saleDoc.grandTotal).toLocaleString("en-IN")}
+*Due Date:* ${saleDoc.dueDate ? new Date(saleDoc.dueDate).toLocaleDateString("en-IN") : "N/A"}
+----------------------------------------
+*Items:*
+${itemsList || "—"}
+----------------------------------------
+Your PDF invoice has been downloaded. Thank you for your business!`;
+
+  const encodedMsg = encodeURIComponent(message);
+  const waUrl = cleanPhone
+    ? `https://wa.me/${cleanPhone}?text=${encodedMsg}`
+    : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+
+  window.open(waUrl, "_blank");
+}

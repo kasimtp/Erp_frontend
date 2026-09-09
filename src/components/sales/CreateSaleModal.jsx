@@ -1,6 +1,7 @@
-import { Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, MessageCircle, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import client from "../../api/client";
+import { downloadInvoicePDF, shareInvoiceWhatsApp } from "../../utils/pdfExportUtils";
 
 export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDocumentType = "invoice" }) {
   const [documentType, setDocumentType] = useState(initialDocumentType);
@@ -12,9 +13,11 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [createdSaleDoc, setCreatedSaleDoc] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
+      setCreatedSaleDoc(null);
       setDocumentType(initialDocumentType);
       fetchDependencies();
     }
@@ -141,8 +144,8 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
         throw new Error(data.message || "Failed to create sale document");
       }
 
+      setCreatedSaleDoc(data.data);
       onSuccess && onSuccess(data.data);
-      onClose();
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -151,6 +154,76 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
   };
 
   if (!isOpen) return null;
+
+  if (createdSaleDoc) {
+    const custName = createdSaleDoc.customerName || createdSaleDoc.customer?.name || "Customer";
+    const phone = createdSaleDoc.customer?.phone || "";
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
+        <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
+            <CheckCircle2 size={32} />
+          </div>
+
+          <h3 className="text-xl font-bold text-slate-900">
+            {createdSaleDoc.documentType === "quotation" ? "Quotation" : "Invoice"} Created Successfully!
+          </h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Document <span className="font-semibold text-slate-800">{createdSaleDoc.documentNumber}</span> saved to database.
+          </p>
+
+          <div className="my-5 rounded-xl bg-slate-50 p-4 text-left text-xs space-y-2 border border-slate-100">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Customer:</span>
+              <span className="font-semibold text-slate-800">{custName}</span>
+            </div>
+            {phone && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Phone:</span>
+                <span className="font-medium text-slate-700">{phone}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-slate-500">Grand Total:</span>
+              <span className="font-bold text-teal-700 text-sm">₹{createdSaleDoc.grandTotal?.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Due Date:</span>
+              <span className="text-slate-700">
+                {createdSaleDoc.dueDate ? new Date(createdSaleDoc.dueDate).toLocaleDateString("en-IN") : "N/A"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <button
+              onClick={() => downloadInvoicePDF(createdSaleDoc)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition"
+            >
+              <Download size={17} /> Download PDF Invoice
+            </button>
+
+            <button
+              onClick={() => shareInvoiceWhatsApp(createdSaleDoc)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
+            >
+              <MessageCircle size={17} /> Share via WhatsApp
+            </button>
+
+            <button
+              onClick={() => {
+                setCreatedSaleDoc(null);
+                onClose();
+              }}
+              className="mt-2 w-full rounded-xl border border-slate-200 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+            >
+              Done / Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">

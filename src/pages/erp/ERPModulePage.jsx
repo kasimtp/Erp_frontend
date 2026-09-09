@@ -1,4 +1,4 @@
-import { ChevronDown, CreditCard, Download, Filter, Plus, RefreshCw, Search } from "lucide-react";
+import { ChevronDown, CreditCard, Download, Filter, MessageCircle, Plus, RefreshCw, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import client from "../../api/client";
 import CreateCustomerModal from "../../components/customers/CreateCustomerModal.jsx";
@@ -9,6 +9,7 @@ import RecordSupplierPaymentModal from "../../components/purchases/RecordSupplie
 import CreateSaleModal from "../../components/sales/CreateSaleModal.jsx";
 import RecordPaymentModal from "../../components/sales/RecordPaymentModal.jsx";
 import CreateSupplierModal from "../../components/suppliers/CreateSupplierModal.jsx";
+import { downloadInvoicePDF, shareInvoiceWhatsApp } from "../../utils/pdfExportUtils";
 
 const statusClass = (value) => {
   const text = String(value).toLowerCase();
@@ -447,13 +448,34 @@ export default function ERPModulePage({ config }) {
 
                   {/* Actions Column */}
                   <td className="px-6 py-4 text-right">
-                    {titleLower.includes("sale") && rawDoc && rawDoc.balanceDue > 0 ? (
-                      <button
-                        onClick={() => setSelectedSaleForPayment(rawDoc)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
-                      >
-                        <CreditCard size={14} /> Pay
-                      </button>
+                    {titleLower.includes("sale") && rawDoc ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          title="Download PDF Invoice"
+                          onClick={() => downloadInvoicePDF(rawDoc)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 shadow-2xs hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition"
+                        >
+                          <Download size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          title="Share via WhatsApp"
+                          onClick={() => shareInvoiceWhatsApp(rawDoc)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1.5 text-emerald-600 shadow-2xs hover:border-emerald-300 hover:bg-emerald-50 transition"
+                        >
+                          <MessageCircle size={13} />
+                        </button>
+                        {rawDoc.balanceDue > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSaleForPayment(rawDoc)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
+                          >
+                            <CreditCard size={13} /> Pay
+                          </button>
+                        ) : null}
+                      </div>
                     ) : titleLower.includes("purchase") && rawDoc && rawDoc.balanceDue > 0 ? (
                       <button
                         onClick={() => setSelectedPurchaseForPayment(rawDoc)}
