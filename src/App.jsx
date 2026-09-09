@@ -6,6 +6,7 @@ import Register from "./pages/auth/Register.jsx";
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
 import ERPModulePage from "./pages/erp/ERPModulePage.jsx";
 import { moduleConfigs } from "./pages/erp/moduleConfigs.js";
+import ExpensesPage from "./pages/expenses/ExpensesPage.jsx";
 import ReportsPage from "./pages/reports/ReportsPage.jsx";
 import UsersPage from "./pages/users/UsersPage.jsx";
 
@@ -24,7 +25,8 @@ export default function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="reports" element={<ReportsPage />} />
-        {Object.entries(moduleConfigs).filter(([path]) => path !== "users" && path !== "reports").map(([path, config]) => (
+        <Route path="expenses" element={<ExpensesPage />} />
+        {Object.entries(moduleConfigs).filter(([path]) => path !== "users" && path !== "reports" && path !== "expenses").map(([path, config]) => (
           <Route key={path} path={path} element={<ERPModulePage config={config} />} />
         ))}
       </Route>
