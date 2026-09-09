@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --foreground-scripts",
+  "installCommand": "npm install --ignore-scripts && node node_modules/esbuild/install.js",
   "buildCommand": "npx vite build",
   "outputDirectory": "dist",
   "rewrites": [
