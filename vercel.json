@@ -1,8 +1,8 @@
 {
-  "installCommand": "npm install --ignore-scripts && node node_modules/esbuild/install.js",
-  "buildCommand": "npx vite build",
-  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
