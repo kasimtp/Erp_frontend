@@ -9,7 +9,12 @@ import RecordSupplierPaymentModal from "../../components/purchases/RecordSupplie
 import CreateSaleModal from "../../components/sales/CreateSaleModal.jsx";
 import RecordPaymentModal from "../../components/sales/RecordPaymentModal.jsx";
 import CreateSupplierModal from "../../components/suppliers/CreateSupplierModal.jsx";
-import { downloadInvoicePDF, shareInvoiceWhatsApp } from "../../utils/pdfExportUtils";
+import {
+  downloadInvoicePDF,
+  downloadQuotationPDF,
+  shareInvoiceWhatsApp,
+  shareQuotationWhatsApp,
+} from "../../utils/pdfExportUtils";
 
 const statusClass = (value) => {
   const text = String(value).toLowerCase();
@@ -354,7 +359,7 @@ export default function ERPModulePage({ config }) {
             className="flex w-fit items-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
           >
             <Plus size={18} />
-            {config.primaryAction}
+            {activeTab.toLowerCase().includes("quotation") ? "Create quotation" : config.primaryAction}
           </button>
         </div>
       </div>
@@ -452,8 +457,12 @@ export default function ERPModulePage({ config }) {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          title="Download PDF Invoice"
-                          onClick={() => downloadInvoicePDF(rawDoc)}
+                          title={rawDoc.documentType === "quotation" ? "Download PDF Quotation" : "Download PDF Invoice"}
+                          onClick={() =>
+                            rawDoc.documentType === "quotation"
+                              ? downloadQuotationPDF(rawDoc)
+                              : downloadInvoicePDF(rawDoc)
+                          }
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 shadow-2xs hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition"
                         >
                           <Download size={13} />
@@ -461,7 +470,11 @@ export default function ERPModulePage({ config }) {
                         <button
                           type="button"
                           title="Share via WhatsApp"
-                          onClick={() => shareInvoiceWhatsApp(rawDoc)}
+                          onClick={() =>
+                            rawDoc.documentType === "quotation"
+                              ? shareQuotationWhatsApp(rawDoc)
+                              : shareInvoiceWhatsApp(rawDoc)
+                          }
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1.5 text-emerald-600 shadow-2xs hover:border-emerald-300 hover:bg-emerald-50 transition"
                         >
                           <MessageCircle size={13} />
@@ -512,6 +525,7 @@ export default function ERPModulePage({ config }) {
       {/* Creation & Payment Modals */}
       <CreateSaleModal
         isOpen={isSaleModalOpen}
+        initialDocumentType={activeTab.toLowerCase().includes("quotation") ? "quotation" : "invoice"}
         onClose={() => setIsSaleModalOpen(false)}
         onSuccess={() => {
           fetchLiveData();

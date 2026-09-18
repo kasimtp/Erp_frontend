@@ -6,6 +6,7 @@ import Topbar from "../components/navigation/Topbar.jsx";
 const titles = {
   "/dashboard": "Dashboard",
   "/sales": "Sales",
+  "/quotations": "Quotations & Estimates",
   "/purchases": "Purchases",
   "/inventory": "Inventory",
   "/customers": "Customers",

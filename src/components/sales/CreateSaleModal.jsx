@@ -1,7 +1,12 @@
 import { CheckCircle2, Download, MessageCircle, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import client from "../../api/client";
-import { downloadInvoicePDF, shareInvoiceWhatsApp } from "../../utils/pdfExportUtils";
+import {
+  downloadInvoicePDF,
+  downloadQuotationPDF,
+  shareInvoiceWhatsApp,
+  shareQuotationWhatsApp,
+} from "../../utils/pdfExportUtils";
 
 export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDocumentType = "invoice" }) {
   const [documentType, setDocumentType] = useState(initialDocumentType);
@@ -19,9 +24,17 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
     if (isOpen) {
       setCreatedSaleDoc(null);
       setDocumentType(initialDocumentType);
+      if (initialDocumentType === "quotation") {
+        setDueDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+        setNotes("Quotation valid for 30 days from date of issue. Prices subject to standard terms.");
+      } else {
+        setDueDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+        setNotes("");
+      }
       fetchDependencies();
     }
   }, [isOpen, initialDocumentType]);
+
 
   const fetchDependencies = async () => {
     try {
@@ -132,16 +145,28 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
     setError("");
 
     try {
-      const { data } = await client.post("/sales", {
-        documentType,
-        customerId: selectedCustomerId,
-        items,
-        dueDate,
-        notes,
-      });
+      const endpoint = documentType === "quotation" ? "/quotations" : "/sales";
+      const payload =
+        documentType === "quotation"
+          ? {
+              customerId: selectedCustomerId,
+              items,
+              validUntil: dueDate,
+              dueDate,
+              notes,
+            }
+          : {
+              documentType,
+              customerId: selectedCustomerId,
+              items,
+              dueDate,
+              notes,
+            };
+
+      const { data } = await client.post(endpoint, payload);
 
       if (!data.success) {
-        throw new Error(data.message || "Failed to create sale document");
+        throw new Error(data.message || "Failed to create document");
       }
 
       setCreatedSaleDoc(data.data);
@@ -184,11 +209,15 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-slate-500">Grand Total:</span>
+              <span className="text-slate-500">
+                {createdSaleDoc.documentType === "quotation" ? "Quoted Total:" : "Grand Total:"}
+              </span>
               <span className="font-bold text-teal-700 text-sm">₹{createdSaleDoc.grandTotal?.toLocaleString("en-IN")}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Due Date:</span>
+              <span className="text-slate-500">
+                {createdSaleDoc.documentType === "quotation" ? "Valid Until:" : "Due Date:"}
+              </span>
               <span className="text-slate-700">
                 {createdSaleDoc.dueDate ? new Date(createdSaleDoc.dueDate).toLocaleDateString("en-IN") : "N/A"}
               </span>
@@ -197,14 +226,23 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
 
           <div className="space-y-2.5">
             <button
-              onClick={() => downloadInvoicePDF(createdSaleDoc)}
+              onClick={() =>
+                createdSaleDoc.documentType === "quotation"
+                  ? downloadQuotationPDF(createdSaleDoc)
+                  : downloadInvoicePDF(createdSaleDoc)
+              }
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition"
             >
-              <Download size={17} /> Download PDF Invoice
+              <Download size={17} />{" "}
+              {createdSaleDoc.documentType === "quotation" ? "Download PDF Quotation" : "Download PDF Invoice"}
             </button>
 
             <button
-              onClick={() => shareInvoiceWhatsApp(createdSaleDoc)}
+              onClick={() =>
+                createdSaleDoc.documentType === "quotation"
+                  ? shareQuotationWhatsApp(createdSaleDoc)
+                  : shareInvoiceWhatsApp(createdSaleDoc)
+              }
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
             >
               <MessageCircle size={17} /> Share via WhatsApp
@@ -230,8 +268,14 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
       <div className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <h3 className="text-xl font-semibold text-slate-900">Create New Sale Document</h3>
-            <p className="text-xs text-slate-500">Generate invoice, quotation, sales order or return live in database</p>
+            <h3 className="text-xl font-semibold text-slate-900">
+              {documentType === "quotation" ? "Create Price Quotation" : "Create New Sale Document"}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {documentType === "quotation"
+                ? "Generate official estimate/quotation with items, taxes, validity and PDF download"
+                : "Generate invoice, quotation, sales order or return live in database"}
+            </p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X size={20} /></button>
         </div>
@@ -274,7 +318,9 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Due Date</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                {documentType === "quotation" ? "Validity Date" : "Due Date"}
+              </label>
               <input
                 type="date"
                 value={dueDate}
@@ -415,7 +461,11 @@ export default function CreateSaleModal({ isOpen, onClose, onSuccess, initialDoc
               disabled={loading}
               className="rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
             >
-              {loading ? "Saving to Database..." : "Create Sale Document"}
+              {loading
+                ? "Saving to Database..."
+                : documentType === "quotation"
+                ? "Create Quotation"
+                : "Create Sale Document"}
             </button>
           </div>
         </form>

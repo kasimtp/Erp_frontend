@@ -7,6 +7,7 @@ import Dashboard from "./pages/dashboard/Dashboard.jsx";
 import ERPModulePage from "./pages/erp/ERPModulePage.jsx";
 import { moduleConfigs } from "./pages/erp/moduleConfigs.js";
 import ExpensesPage from "./pages/expenses/ExpensesPage.jsx";
+import QuotationsPage from "./pages/quotations/QuotationsPage.jsx";
 import ReportsPage from "./pages/reports/ReportsPage.jsx";
 import UsersPage from "./pages/users/UsersPage.jsx";
 
@@ -24,9 +25,10 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="quotations" element={<QuotationsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="expenses" element={<ExpensesPage />} />
-        {Object.entries(moduleConfigs).filter(([path]) => path !== "users" && path !== "reports" && path !== "expenses").map(([path, config]) => (
+        {Object.entries(moduleConfigs).filter(([path]) => path !== "users" && path !== "reports" && path !== "expenses" && path !== "quotations").map(([path, config]) => (
           <Route key={path} path={path} element={<ERPModulePage config={config} />} />
         ))}
       </Route>

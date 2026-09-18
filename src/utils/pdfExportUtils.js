@@ -415,3 +415,278 @@ Your PDF invoice has been downloaded. Thank you for your business!`;
 
   window.open(waUrl, "_blank");
 }
+
+/**
+ * Generate and download a specialized professional Sales Quotation / Estimate PDF
+ * @param {Object} quoteDoc
+ */
+export function downloadQuotationPDF(quoteDoc) {
+  if (!quoteDoc) return;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  // Header Banner with Brand styling
+  doc.setFillColor(...BRAND_COLOR);
+  doc.rect(0, 0, pageW, 34, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("ORBIT BUSINESS SUITE", 14, 13);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("GSTIN: 32AABCU9603R1ZM | contact@orbitbusiness.com", 14, 20);
+  doc.text("123 Business Avenue, Tech Hub, India | Ph: +91 98765 43210", 14, 25);
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("SALES QUOTATION", pageW - 14, 15, { align: "right" });
+
+  const statusStr = (quoteDoc.status || "SENT").toUpperCase();
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Status: ${statusStr}`, pageW - 14, 23, { align: "right" });
+  doc.text(`Official Quotation / Price Estimate`, pageW - 14, 28, { align: "right" });
+
+  // Details Row
+  let y = 43;
+
+  // Document Info
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("Quotation Details", 14, y);
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Quote Number:", 14, y + 6);
+  doc.text("Quote Date:", 14, y + 11);
+  doc.text("Valid Until:", 14, y + 16);
+
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFont("helvetica", "bold");
+  doc.text(quoteDoc.documentNumber || "QUO-DRAFT", 40, y + 6);
+  doc.setFont("helvetica", "normal");
+  doc.text(fmtDate(quoteDoc.createdAt || new Date()), 40, y + 11);
+
+  // Validity Date (default +30 days if not set)
+  const validUntilDate = quoteDoc.dueDate
+    ? fmtDate(quoteDoc.dueDate)
+    : fmtDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+  doc.setTextColor(15, 118, 110);
+  doc.setFont("helvetica", "bold");
+  doc.text(validUntilDate, 40, y + 16);
+
+  // Quoted To (Right Side)
+  const rightX = pageW / 2 + 5;
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("Quotation Prepared For:", rightX, y);
+
+  const cust = quoteDoc.customer || {};
+  const custName = cust.name || quoteDoc.customerName || "Valued Client";
+  const custPhone = cust.phone || "";
+  const custEmail = cust.email || "";
+  const custAddress = cust.address || "";
+  const custCompany = cust.company || "";
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.text(custName + (custCompany ? ` (${custCompany})` : ""), rightX, y + 6);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_MUTED);
+  let custY = y + 11;
+  if (custPhone) {
+    doc.text(`Phone: ${custPhone}`, rightX, custY);
+    custY += 5;
+  }
+  if (custEmail) {
+    doc.text(`Email: ${custEmail}`, rightX, custY);
+    custY += 5;
+  }
+  if (custAddress) {
+    doc.text(`Address: ${custAddress}`, rightX, custY);
+    custY += 5;
+  }
+
+  y = Math.max(y + 24, custY + 2);
+
+  // Items Table
+  const items = quoteDoc.items || [];
+  const tableRows = items.map((item, idx) => {
+    const qty = Number(item.quantity) || 1;
+    const price = Number(item.unitPrice) || 0;
+    const taxRate = Number(item.taxRate) || 0;
+    const total = Number(item.total) || qty * price;
+    return [
+      idx + 1,
+      item.productName || item.product?.name || "Product Item",
+      item.sku || "—",
+      qty,
+      fmtINR(price),
+      taxRate ? `${taxRate}%` : "0%",
+      fmtINR(total),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["#", "Item & Specifications", "SKU", "Qty", "Unit Price", "Tax", "Quoted Total"]],
+    body: tableRows,
+    theme: "striped",
+    headStyles: {
+      fillColor: BRAND_COLOR,
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 8.5,
+    },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3.5,
+      textColor: ACCENT_COLOR,
+      lineColor: [226, 232, 240],
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 16, halign: "center" },
+      4: { cellWidth: 28, halign: "right" },
+      5: { cellWidth: 18, halign: "center" },
+      6: { cellWidth: 32, halign: "right" },
+    },
+  });
+
+  const finalY = doc.lastAutoTable && doc.lastAutoTable.finalY ? doc.lastAutoTable.finalY + 8 : y + 45;
+
+  // Summary Table (Right aligned)
+  const summaryX = pageW - 85;
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_MUTED);
+
+  const grandTotal = quoteDoc.grandTotal || 0;
+  const subtotal = quoteDoc.subtotal || grandTotal;
+  const taxTotal = quoteDoc.taxTotal || 0;
+  const discountTotal = quoteDoc.discountTotal || 0;
+
+  let sumY = finalY;
+  const addSummaryLine = (label, val, isBold = false, isHighlight = false) => {
+    if (isHighlight) {
+      doc.setFillColor(236, 253, 245); // teal-50
+      doc.roundedRect(summaryX - 4, sumY - 4, 75, 8, 1, 1, "F");
+    }
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    doc.setTextColor(...(isBold ? ACCENT_COLOR : TEXT_MUTED));
+    doc.text(label, summaryX, sumY);
+    doc.text(fmtINR(val), pageW - 14, sumY, { align: "right" });
+    sumY += 6;
+  };
+
+  addSummaryLine("Quotation Subtotal:", subtotal);
+  if (discountTotal > 0) addSummaryLine("Special Discount:", -discountTotal);
+  if (taxTotal > 0) addSummaryLine("Estimated Tax (GST):", taxTotal);
+  addSummaryLine("Total Quoted Amount:", grandTotal, true, true);
+
+  // Terms & Conditions section (Left side)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...ACCENT_COLOR);
+  doc.text("Quotation Terms & Conditions:", 14, finalY);
+
+  const standardTerms = [
+    "1. Validity: This quotation is valid until the validity date specified above.",
+    "2. Delivery: Items will be dispatched upon receipt of confirmed Purchase Order.",
+    "3. Payment: Standard terms apply upon final invoice issuance.",
+    quoteDoc.notes ? `4. Notes: ${quoteDoc.notes}` : "4. Prices are subject to applicable taxes as indicated above.",
+  ];
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...TEXT_MUTED);
+  let termY = finalY + 5;
+  standardTerms.forEach((term) => {
+    const lines = doc.splitTextToSize(term, summaryX - 25);
+    doc.text(lines, 14, termY);
+    termY += lines.length * 4;
+  });
+
+  // Dual Signature Area at Bottom
+  const sigY = pageH - 26;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(14, sigY - 6, pageW - 14, sigY - 6);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Client Acceptance Signature", 14, sigY);
+  doc.text("Authorized Signature & Stamp", pageW - 14, sigY, { align: "right" });
+
+  doc.setFontSize(7.5);
+  doc.text("Date: ________________________", 14, sigY + 8);
+  doc.text("For Orbit Business Suite", pageW - 14, sigY + 8, { align: "right" });
+
+  doc.save(`${quoteDoc.documentNumber || "Quotation"}.pdf`);
+}
+
+/**
+ * Share quotation summary with direct WhatsApp link and download quotation PDF
+ * @param {Object} quoteDoc
+ */
+export function shareQuotationWhatsApp(quoteDoc) {
+  if (!quoteDoc) return;
+
+  // 1. Download PDF quotation
+  downloadQuotationPDF(quoteDoc);
+
+  // 2. Prepare WhatsApp message
+  const cust = quoteDoc.customer || {};
+  const custName = cust.name || quoteDoc.customerName || "Customer";
+  const phone = cust.phone || "";
+
+  let cleanPhone = String(phone).replace(/\D/g, "");
+  if (cleanPhone.length === 10) {
+    cleanPhone = `91${cleanPhone}`;
+  }
+
+  const itemsList = (quoteDoc.items || [])
+    .map(
+      (it, i) =>
+        `${i + 1}. ${it.productName || it.product?.name || "Item"} x ${it.quantity} = Rs ${(it.total || 0).toLocaleString("en-IN")}`
+    )
+    .join("\n");
+
+  const validUntil = quoteDoc.dueDate
+    ? new Date(quoteDoc.dueDate).toLocaleDateString("en-IN")
+    : "30 days from date";
+
+  const message = `*SALES QUOTATION: ${quoteDoc.documentNumber}*
+Hello ${custName},
+
+Thank you for your inquiry! Please find the price estimate / quotation details below:
+----------------------------------------
+*Quotation #:* ${quoteDoc.documentNumber}
+*Date:* ${new Date(quoteDoc.createdAt || Date.now()).toLocaleDateString("en-IN")}
+*Valid Until:* ${validUntil}
+*Quoted Total:* Rs ${(quoteDoc.grandTotal || 0).toLocaleString("en-IN")}
+*Status:* ${(quoteDoc.status || "SENT").toUpperCase()}
+----------------------------------------
+*Items Quoted:*
+${itemsList || "—"}
+----------------------------------------
+${quoteDoc.notes ? `*Notes:* ${quoteDoc.notes}\n----------------------------------------\n` : ""}Your official PDF quotation has been downloaded to your device. Please let us know if you would like to proceed with the order!
+
+Orbit Business Suite`;
+
+  const encodedMsg = encodeURIComponent(message);
+  const waUrl = cleanPhone
+    ? `https://wa.me/${cleanPhone}?text=${encodedMsg}`
+    : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+
+  window.open(waUrl, "_blank");
+}
+

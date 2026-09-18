@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
-  BarChart3, Boxes, Building2, Calculator, ContactRound, FileText,
+  BarChart3, Boxes, Building2, Calculator, ContactRound, FileSpreadsheet, FileText,
   LayoutDashboard, PackageSearch, ReceiptText, Settings, ShoppingCart,
   Truck, Users, WalletCards, X,
 } from "lucide-react";
@@ -8,6 +8,7 @@ import {
 const items = [
   ["/dashboard", "Dashboard", LayoutDashboard],
   ["/sales", "Sales", FileText],
+  ["/quotations", "Quotations", FileSpreadsheet],
   ["/purchases", "Purchases", ShoppingCart],
   ["/inventory", "Inventory", Boxes],
   ["/customers", "Customers", ContactRound],
