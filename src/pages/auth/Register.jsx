@@ -45,7 +45,7 @@ export default function Register() {
             <Building2 />
           </span>
           <div>
-            <p className="text-lg font-semibold">Orbit</p>
+            <p className="text-lg font-semibold">CRM</p>
             <p className="text-xs text-white/50">Business Suite</p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function Register() {
             <span className="grid size-10 place-items-center rounded-xl bg-teal-600 text-white">
               <Building2 size={21} />
             </span>
-            <span className="font-semibold">Orbit Business Suite</span>
+            <span className="font-semibold">CRM Business Suite</span>
           </div>
 
           <h2 className="text-3xl font-semibold text-slate-900">Create an account</h2>

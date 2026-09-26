@@ -74,6 +74,6 @@ export const moduleConfigs = {
     primaryAction: "Save settings", tabs: ["Company", "Tax & currency", "Numbering", "Backup & export"],
     metrics: [["Currency", "INR (₹)"], ["Default tax", "18% GST"], ["Invoice prefix", "INV"], ["Last backup", "06 Sep 2026"]],
     columns: ["Setting", "Current value", "Category", "Updated", "Status"],
-    rows: [["Company profile", "Orbit Business", "Company", "01 Sep 2026", "Configured"], ["GST", "18%", "Tax", "01 Sep 2026", "Active"], ["Invoice numbering", "INV-000001", "Documents", "04 Sep 2026", "Active"], ["Automatic backup", "Daily", "Data", "06 Sep 2026", "Enabled"]],
+    rows: [["Company profile", "CRM Business", "Company", "01 Sep 2026", "Configured"], ["GST", "18%", "Tax", "01 Sep 2026", "Active"], ["Invoice numbering", "INV-000001", "Documents", "04 Sep 2026", "Active"], ["Automatic backup", "Daily", "Data", "06 Sep 2026", "Enabled"]],
   },
 };

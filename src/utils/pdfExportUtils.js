@@ -186,11 +186,11 @@ export function downloadInvoicePDF(saleDoc) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("ORBIT BUSINESS SUITE", 14, 13);
+  doc.text("CRM BUSINESS SUITE", 14, 13);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("GSTIN: 32AABCU9603R1ZM | contact@orbitbusiness.com", 14, 20);
+  doc.text("GSTIN: 32AABCU9603R1ZM | contact@crmbusiness.com", 14, 20);
   doc.text("123 Business Avenue, Tech Hub, India", 14, 25);
 
   doc.setFontSize(16);
@@ -433,11 +433,11 @@ export function downloadQuotationPDF(quoteDoc) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("ORBIT BUSINESS SUITE", 14, 13);
+  doc.text("CRM BUSINESS SUITE", 14, 13);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("GSTIN: 32AABCU9603R1ZM | contact@orbitbusiness.com", 14, 20);
+  doc.text("GSTIN: 32AABCU9603R1ZM | contact@crmbusiness.com", 14, 20);
   doc.text("123 Business Avenue, Tech Hub, India | Ph: +91 98765 43210", 14, 25);
 
   doc.setFontSize(16);
@@ -628,7 +628,7 @@ export function downloadQuotationPDF(quoteDoc) {
 
   doc.setFontSize(7.5);
   doc.text("Date: ________________________", 14, sigY + 8);
-  doc.text("For Orbit Business Suite", pageW - 14, sigY + 8, { align: "right" });
+  doc.text("For CRM Business Suite", pageW - 14, sigY + 8, { align: "right" });
 
   doc.save(`${quoteDoc.documentNumber || "Quotation"}.pdf`);
 }
@@ -680,7 +680,7 @@ ${itemsList || "—"}
 ----------------------------------------
 ${quoteDoc.notes ? `*Notes:* ${quoteDoc.notes}\n----------------------------------------\n` : ""}Your official PDF quotation has been downloaded to your device. Please let us know if you would like to proceed with the order!
 
-Orbit Business Suite`;
+CRM Business Suite`;
 
   const encodedMsg = encodeURIComponent(message);
   const waUrl = cleanPhone

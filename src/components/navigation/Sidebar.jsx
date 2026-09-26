@@ -28,7 +28,7 @@ export default function Sidebar({ open, onClose }) {
         <div className="flex h-20 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-xl bg-teal-500"><Building2 size={22} /></span>
-            <div><p className="font-semibold">Orbit</p><p className="text-xs text-teal-100/60">Business Suite</p></div>
+            <div><p className="font-semibold">CRM</p><p className="text-xs text-teal-100/60">Business Suite</p></div>
           </div>
           <button onClick={onClose} className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden"><X size={20} /></button>
         </div>
